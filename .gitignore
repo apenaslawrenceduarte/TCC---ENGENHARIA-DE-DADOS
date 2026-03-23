@@ -1,9 +1,5 @@
-# Dados brutos (arquivos grandes demais para o GitHub)
-Banco_PrEP_usuarios.csv
+# Dados brutos (arquivo grande demais para o GitHub - baixar via link no README)
 Banco_PrEP_dispensas.csv
-
-# Banco de dados gerado pelo pipeline
-prep_rj.db
 
 # Python
 __pycache__/
