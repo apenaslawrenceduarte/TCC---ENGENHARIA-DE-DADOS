@@ -1,0 +1,338 @@
+Projeto de TCC – Análise Sociodemográfica de Usuários de PrEP do Rio de Janeiro
+
+Título:
+
+ENGENHARIA DE DADOS EM SAÚDE: PIPELINE DE DADOS PARA ANÁLISE SOCIODEMOGRÁFICA DOS USUÁRIOS DE PrEP NO RIO DE JANEIRO 
+
+Objetivo
+
+Como estruturar um pipeline de dados confiável que permita analisar o perfil sociodemográfico e as tendências de adesão à PrEP no município do Rio de Janeiro entre 2018 e 2024?
+
+Fonte de Dados
+
+Painel de PrEP disponibilizado pelo DATASUS, vinculado ao Sistema Único de Saúde.
+
+Arquivos em formato CSV compactados (.zip), contendo registros anonimizados de usuários e dispensações entre 2018 e 2024.
+
+Foco exclusivo no município do Rio de Janeiro.
+
+Critérios de inclusão: registros com informações válidas de município e variáveis sociodemográficas preenchidas.
+
+Limitações: presença de valores ausentes, categorias “não informado” e possível incompletude dos registros.
+
+Variáveis Sociodemográficas
+
+Gênero: Masculino, Feminino, Outros/Trans, Não informado
+
+Faixa etária: 0–14, 15–24, 25–34, 35–44, 45–54, 55+
+
+Raça/Cor: Branca, Preta, Parda, Amarela, Indígena, Não informado
+
+Escolaridade: Sem instrução, Fundamental incompleto/completo, Médio incompleto/completo, Superior incompleto/completo
+
+Adesão à PrEP: Início, manutenção, abandono
+
+Tipo de atendimento: Público, privado
+
+Engenharia de Dados
+
+ETL (Extract, Transform, Load):
+
+Extrair dados do DATASUS
+
+Limpar e padronizar categorias
+
+Tratar valores faltantes e inconsistências
+
+Carregar em banco de dados estruturado (PostgreSQL, SQLite ou equivalente)
+
+Pipeline automatizado:
+
+Permitir atualização periódica de novos dados
+
+Documentar fluxo de dados
+
+Benefício: Demonstra aplicação de práticas de engenharia de dados em saúde pública, integrando qualidade de dados, padronização e visualização.
+
+Análise de Dados e Visualizações
+
+Gráficos sugeridos:
+
+Distribuição por gênero → gráfico de barras ou pizza
+
+Distribuição por faixa etária → histograma ou gráfico de colunas
+
+Distribuição por raça/cor → gráfico de barras empilhadas
+
+Distribuição por escolaridade → gráfico de barras horizontais
+
+Tendência temporal de adesão à PrEP → linha do tempo
+
+Cruzamentos opcionais → gênero × faixa etária × raça/cor → barras empilhadas ou heatmap
+
+Tabelas sugeridas:
+
+Tabela resumo por variável:
+
+Variável	Categorias	Total	%
+Gênero	Masculino, Feminino, Outros/Não informado		
+Faixa etária	15–24, 25–34, 35–44, 45–54, 55+		
+Raça/Cor	Branca, Preta, Parda, Amarela, Indígena		
+Escolaridade	Sem instrução, Fundamental, Médio, Superior		
+
+Tabela cruzada exemplo:
+
+Faixa etária	Masculino	Feminino	Outros	Total
+15–24				
+25–34				
+35–44				
+Dashboard Interativo (Opcional, Recomendado)
+
+Ferramentas sugeridas: Power BI, Tableau, Metabase, Streamlit ou Dash
+
+Funcionalidades:
+
+Filtros por gênero, faixa etária, raça/cor
+
+Linha do tempo de adesão à PrEP
+
+Gráficos dinâmicos e interativos
+
+Objetivo: demonstrar aplicação prática de engenharia de dados e visualização interativa, com base no pipeline estruturado.
+
+Roadmap do Projeto
+
+Levantamento e download dos dados do DATASUS
+
+Limpeza e padronização das variáveis sociodemográficas
+
+Criação do banco estruturado
+
+Pipeline ETL para atualização automatizada
+
+Análise descritiva → gráficos, tabelas, cruzamentos
+
+Dashboard interativo (opcional)
+
+Relatório final → introdução, metodologia, resultados, discussão, conclusão
+
+4. Orquestração de Dados
+
+A orquestração de dados do projeto foi implementada por meio de um pipeline ETL automatizado, desenvolvido em Python (pipeline.py), que executa três etapas sequenciais: Extração, Transformação e Carga. Ao final do processo, o banco de dados SQLite (prep_rj.db) é gerado e consumido diretamente pelo dashboard interativo (dashboard.py).
+
+────────────────────────────────────────
+ETAPA 1 – EXTRACT (Extração)
+────────────────────────────────────────
+Os dados foram obtidos do Painel de PrEP disponibilizado pelo DATASUS/Ministério da Saúde em formato CSV:
+
+• Banco_PrEP_usuarios.csv  → ~236.000 usuários nacionais
+• Banco_PrEP_dispensas.csv → ~1.140.000 dispensações nacionais
+
+Os arquivos são lidos com a biblioteca pandas, com tipagem explícita nas colunas de código IBGE e identificador do usuário (Cod_unificado) para evitar perda de zeros à esquerda.
+
+────────────────────────────────────────
+ETAPA 2 – TRANSFORM (Transformação)
+────────────────────────────────────────
+As seguintes transformações foram aplicadas:
+
+2a. Filtragem geográfica
+   Mantidos apenas os registros cujo código IBGE de residência corresponde ao município do Rio de Janeiro (código 3304557), resultando em:
+   → 17.692 usuários residentes no município do Rio de Janeiro
+   → 90.538 dispensações vinculadas a esses usuários
+
+2b. Padronização de gênero/população
+   A coluna original "Pop_genero_pratica" foi mapeada para rótulos simplificados:
+   • "Gays e outros HSH cis"        → Gays/HSH
+   • "Mulheres cis"                 → Mulheres cis
+   • "Homens heterossexuais cis"    → Homens hétero
+   • "Mulheres trans"               → Mulheres trans
+   • "Homens trans"                 → Homens trans
+   • "Não binaries"                 → Não-binário
+   • "Travestis"                    → Travestis
+
+2c. Limpeza de faixa etária
+   Remoção de espaços em branco na coluna "fetar", gerando a coluna "fetar_clean".
+
+2d. Escolaridade com ordem ordinal
+   Criada a coluna "escolaridade_ordem" para permitir ordenação correta nos gráficos:
+   1 → Sem educação formal a 3 anos
+   2 → De 4 a 7 anos
+   3 → De 8 a 11 anos
+   4 → 12 ou mais anos
+   5 → Ignorada
+
+2e. Atribuição de zonas do Rio de Janeiro
+   Desenvolvido algoritmo de geolocalização por correspondência de texto no nome da unidade dispensadora (UDM), com três níveis de prioridade:
+   1º Código AP no nome da unidade (ex: "AP 21" → Zona Sul)
+   2º Serviços de referência conhecidos (ex: FIOCRUZ → Zona Norte)
+   3º Palavras-chave de bairro (ex: "COPACABANA" → Zona Sul)
+
+   Mapeamento de Áreas de Planejamento:
+   • AP 10              → Zona Central
+   • AP 21, AP 22       → Zona Sul
+   • AP 31, AP 32, AP 33 → Zona Norte
+   • AP 40, AP 51, AP 52, AP 53 → Zona Sudoeste
+
+2f. Parsing de datas
+   As colunas de data (dt_disp, dt_disp_min, dt_disp_max) foram convertidas para o tipo datetime, com extração de ano e mês como colunas auxiliares.
+
+2g. Tabela de adesão temporal
+   Para cada ano de 2018 a 2024, os registros das colunas "EmPrEP_YYYY" foram desmembrados em uma tabela longitudinal com as colunas:
+   Cod_unificado | ano | status | genero_simplificado | raca4_cat | fetar_clean | zona_rj
+
+   O status foi classificado em:
+   • "Em PrEP"       → usuário ativo naquele ano
+   • "Descontinuou"  → interrompeu o uso
+   • "Outro"         → demais casos
+
+2h. Novos usuários por ano
+   Calculada a contagem de usuários por ano de primeira dispensação (ano_inicio), gerando a tabela "novos_ano" para análise de tendência de crescimento.
+
+────────────────────────────────────────
+ETAPA 3 – LOAD (Carga)
+────────────────────────────────────────
+Os dados transformados foram carregados em um banco de dados SQLite (prep_rj.db) com as seguintes tabelas:
+
+• usuarios          → 17.692 registros com perfil sociodemográfico completo
+• dispensas         → 90.538 registros de dispensações
+• adesao_temporal   → tabela longitudinal com status por ano por usuário
+• novos_ano         → contagem de novos usuários por ano de ingresso
+
+Além das tabelas, foram criadas 6 views analíticas para consultas pré-agregadas:
+• v_genero        → distribuição por gênero/população
+• v_raca          → distribuição por raça/cor
+• v_fetar         → distribuição por faixa etária
+• v_escolaridade  → distribuição por escolaridade (com ordenação ordinal)
+• v_zona          → distribuição por zona do Rio de Janeiro
+• v_adesao_ano    → evolução anual de adesão e descontinuações
+
+────────────────────────────────────────
+CONSUMO DOS DADOS – DASHBOARD
+────────────────────────────────────────
+O dashboard (dashboard.py) lê diretamente o banco prep_rj.db via SQLite, utilizando cache (@st.cache_data) para evitar recarregamento a cada interação. Os filtros de gênero, raça/cor e zona são aplicados em memória, sem nova consulta ao banco.
+
+────────────────────────────────────────
+COMO EXECUTAR O PIPELINE
+────────────────────────────────────────
+# 1. Instalar dependências (apenas na primeira vez)
+pip install -r requirements.txt
+
+# 2. Rodar o pipeline ETL (gera o prep_rj.db)
+python pipeline.py
+
+# 3. Abrir o dashboard
+streamlit run dashboard.py
+
+────────────────────────────────────────
+
+5. Visualização de Dados
+
+A visualização de dados foi implementada por meio de um dashboard interativo desenvolvido com Streamlit e Plotly, organizado em cinco abas temáticas. O dashboard consome diretamente o banco prep_rj.db gerado pelo pipeline ETL e permite filtragem dinâmica por gênero/população, raça/cor e zona do Rio de Janeiro.
+
+────────────────────────────────────────
+FERRAMENTA E BIBLIOTECAS
+────────────────────────────────────────
+• Streamlit (≥1.32.0) → framework de interface web interativa
+• Plotly Express       → gráficos de barras, pizza, linha, heatmap e mapa
+• Plotly Graph Objects → personalização avançada de gráficos
+• SQLite + pandas      → leitura e filtragem dos dados em memória
+
+────────────────────────────────────────
+FILTROS GLOBAIS (Sidebar)
+────────────────────────────────────────
+Três filtros multisseleção disponíveis na barra lateral que afetam todas as abas simultaneamente:
+• Gênero / População  (ex: Gays/HSH, Mulheres cis, Mulheres trans…)
+• Raça / Cor          (ex: Branca, Preta, Parda…)
+• Zona do Rio de Janeiro (Zona Central, Zona Sul, Zona Norte, Zona Sudoeste)
+
+────────────────────────────────────────
+ABA 1 – VISÃO GERAL
+────────────────────────────────────────
+Indicadores (KPIs) no topo:
+• Total de usuários no município do Rio de Janeiro
+• Total de dispensações registradas
+• Usuários ativos em PrEP em 2024
+• Quantidade de unidades de saúde (UDMs) distintas
+
+Gráficos:
+• Gráfico de rosca (donut) → distribuição por gênero/população
+• Gráfico de barras horizontais → distribuição por raça/cor (ordenado por volume)
+• Gráfico de barras verticais  → novos usuários por ano (primeira dispensação, 2018–2024)
+
+────────────────────────────────────────
+ABA 2 – PERFIL SOCIODEMOGRÁFICO
+────────────────────────────────────────
+Gráficos individuais:
+• Barras verticais  → distribuição por faixa etária (ordenada cronologicamente: <18 até 50 e mais)
+• Barras horizontais → distribuição por escolaridade (ordenada por grau de instrução)
+
+Cruzamentos:
+• Barras empilhadas → faixa etária × gênero/população
+• Heatmap (mapa de calor) → raça/cor × gênero/população, com valores absolutos em cada célula
+
+────────────────────────────────────────
+ABA 3 – ADESÃO À PREP
+────────────────────────────────────────
+Gráficos de tendência temporal (2018–2024):
+• Gráfico de linhas com marcadores → evolução anual de usuários "Em PrEP" vs "Descontinuou"
+• Gráfico de rosca → distribuição de status em 31/12/2024
+• Barras verticais com escala de cor → taxa de descontinuação (%) por ano
+• Barras empilhadas → usuários em PrEP por ano, desagregados por gênero/população
+
+────────────────────────────────────────
+ABA 4 – MAPA POR ZONA
+────────────────────────────────────────
+• Mapa interativo (scatter_mapbox com OpenStreetMap) → bolhas proporcionais ao número de usuários por zona, com tooltip exibindo nome da zona, total e percentual
+• Painel lateral → cartões coloridos com total e % por zona (Zona Central, Zona Sul, Zona Norte, Zona Sudoeste, Não identificada)
+• Gráfico de rosca → dispensações por tipo de serviço de atendimento
+• Gráfico de barras → dispensações por tipo público × privado
+
+Coordenadas utilizadas (centro aproximado de cada zona):
+• Zona Central   → lat -22.9028 / lon -43.1729
+• Zona Sul       → lat -22.9630 / lon -43.1900
+• Zona Norte     → lat -22.8480 / lon -43.3020
+• Zona Sudoeste  → lat -22.9280 / lon -43.4820
+
+────────────────────────────────────────
+ABA 5 – TABELAS RESUMO
+────────────────────────────────────────
+Quatro sub-abas com tabelas interativas e exportáveis:
+• Por variável       → frequência e percentual para cada categoria de gênero, faixa etária, raça/cor, escolaridade e zona
+• Faixa etária × gênero → tabela cruzada com totais marginais
+• Raça × escolaridade   → tabela cruzada com totais marginais
+• Amostra de dados      → primeiros 2.000 registros individuais com variáveis principais
+
+────────────────────────────────────────
+PALETA DE CORES
+────────────────────────────────────────
+Cores fixas atribuídas por zona para consistência visual em todos os gráficos:
+• Zona Central    → #E63946 (vermelho)
+• Zona Sul        → #2A9D8F (verde-água)
+• Zona Norte      → #457B9D (azul)
+• Zona Sudoeste   → #E9C46A (amarelo)
+• Não identificada → #ADB5BD (cinza)
+
+────────────────────────────────────────
+PERFORMANCE
+────────────────────────────────────────
+O decorator @st.cache_data foi aplicado na função de leitura do banco de dados, evitando recarregamento a cada interação do usuário. Os filtros são aplicados sobre os DataFrames já carregados em memória, garantindo resposta imediata na interface.
+
+────────────────────────────────────────
+Banco de dados
+
+O banco de dados do painel da PrEP contém informações de usuários e dispensações entre 2018 e 2024, exclusivamente para o município do Rio de Janeiro.
+
+Clique aqui para acessar. (caso não conclua o download, favor copiar o link: https://mediacenter.aids.gov.br/prep/Dados_PrEP_transparencia.zip
+ e abrir em uma nova aba do seu navegador)
+
+Observações
+
+Focar somente no município do Rio de Janeiro, nenhum outro município.
+
+Incluir insights sobre disparidades e tendências.
+
+Documentar limitações dos dados, como categorias “não informado” e incompletude.
+
+O projeto deve refletir boas práticas de engenharia de dados, análise e visualização.
+
+Incluir o mapa do rio de janeiro na Dashboard pra separar pelas regiões do rio de janeiro (Zona norte, zona sul, zona sudoeste e zona central) 
